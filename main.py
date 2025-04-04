@@ -138,5 +138,34 @@ def register_group():
     print("Group Criado")
     return jsonify({"message": "Grupo criado com sucesso!"}), 200
 
+
+@app.route('/login/group', methods=['GET'])
+def login_group():
+    db = client['groups']  # Substitua pelo nome do seu banco de dados
+    collection = db['groups']
+
+    # Recebe o login e senha do usuário
+    name = request.args.get('login')
+    password = request.args.get('pwd')
+
+    print(name)
+    print(password)
+    
+    # Verifica se o usuário existe
+    group = collection.find_one({'id': name})
+    
+    print("group: ", group)
+
+    if group != None:
+        if group['pwd'] == password:
+            return jsonify({"message": "Login bem-sucedido!", "flag": True}), 200
+    else:
+        group = collection.find_one({'name': name})
+        if group != None:
+            if group['pwd'] == password:
+                return jsonify({"message": "Login bem-sucedido!", "flag": True}), 200
+        else:
+            return jsonify({"message": "Login ou senha inválidos!", "flag": False}), 401
+
 if __name__ == '__main__':
     app.run(debug=True)
