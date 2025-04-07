@@ -103,8 +103,9 @@ def test_register_group():
 # Função para testar o login do grupo
 def test_login_group():
     data = {
-        'login': 'a',  # Substitua com o id do grupo que você quer testar
-        'pwd': 'a'
+        'login': '1o26pr',  # Substitua com o id do grupo que você quer testar
+        'pwd': 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',
+        'login_user': 'ana'
     }
 
     url = f"{BASE_URL}/login/group"
