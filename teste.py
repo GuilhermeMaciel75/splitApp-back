@@ -151,6 +151,7 @@ def test_transaction():
         'id_group': '1o26pr',
         'type_spent': 'Gasolina',
         'spent_description': 'Abastecimento do carro',
+        'login_user': 'ana',
         'spent_value': 100,
         'participants_spent': {
             'ana': 40,

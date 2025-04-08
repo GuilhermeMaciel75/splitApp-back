@@ -202,15 +202,16 @@ def login_group():
     if group:
         # Se o grupo existir, verifica a senha
         if group['pwd'] == password:
-                
+                print("PAssei aqui")
                 # Procura por um usuário disponível para substituir
                 for i, user in enumerate(group['participants']):
                     user_db = collection_users.find_one({'login': user})
-
+                    print(user_db)
                     if user_db is None:
+                        
                         break
 
-                    if user_db['nome'] in group['participants']:
+                    if login_user in group['participants']:
                         return jsonify({"message": "Usuário já associado ao grupo"}), 400
 
                 group['participants'][i] = login_user  # Substitui o primeiro usuário disponível pelo login_user
@@ -333,9 +334,13 @@ def register_spent():
     
     id_group = data.get('id_group')
     type_spent = data.get('type_spent')
+    login_user = data.get('login_user')
     spent_description = data.get('spent_description')
     spent_value = data.get('spent_value')
     participants_spent = data.get('participants_spent')
+
+    print("Registro de gasto recebido")
+    print(data)
 
     
     # Cria o documento para inserir no MongoDB
@@ -344,6 +349,7 @@ def register_spent():
         'type_spent': type_spent,
         'spent_description': spent_description,
         'spent_value': spent_value,
+        'paied_by': login_user,
         'participants_spent': participants_spent
     }
 
