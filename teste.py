@@ -124,6 +124,58 @@ def test_login_group():
     except Exception as e:
         print(f"Erro ao fazer a requisição: {str(e)}")
 
+
+def test_get_group():
+    data = {
+        'loginUser': 'ana'
+    }
+
+    url = f"{BASE_URL}/groups"
+
+    try:
+        # Enviando a requisição GET para a API
+        response = requests.get(url, params=data, verify=False)  # `verify=False` é usado para ignorar erros de SSL em localhost
+
+        # Verificando o status code da resposta
+        if response.status_code == 200:
+            print("Get group bem-sucedido!")
+            print("Resposta:", response.json())
+        else:
+            print(f"Erro ao get group: {response.status_code}")
+            print("Mensagem de erro:", response.json())
+    except Exception as e:
+        print(f"Erro ao fazer a requisição: {str(e)}")
+
+def test_transaction():
+    data = {
+        'id_group': '1o26pr',
+        'type_spent': 'Gasolina',
+        'spent_description': 'Abastecimento do carro',
+        'spent_value': 100,
+        'participants_spent': {
+            'ana': 40,
+            'User 2': 20,
+            'User 3': 40,
+        }
+    }
+
+    url = f"{BASE_URL}/spent/register"
+
+    try:
+        # Enviando a requisição GET para a API
+        response = requests.post(url, json=data, verify=False)  # `verify=False` é usado para ignorar erros de SSL em localhost
+
+        # Verificando o status code da resposta
+        if response.status_code == 200:
+            print("Get group bem-sucedido!")
+            print("Resposta:", response.json())
+        else:
+            print(f"Erro ao get group: {response.status_code}")
+            print("Mensagem de erro:", response.json())
+    except Exception as e:
+        print(f"Erro ao fazer a requisição: {str(e)}")
+
+
 # Executa os testes
 if __name__ == '__main__':
     #print("Testando registro...")
@@ -141,5 +193,11 @@ if __name__ == '__main__':
     #print("\nTestando a criacao de um novo grupo")
     #test_register_group()
 
-    print("\nTestando login de um grupo")
-    test_login_group()
+    #print("\nTestando login de um grupo")
+    #test_login_group()
+
+    #print("\nTestando get group")
+    #test_get_group()
+
+    print("\nTestando a insercao de uma transacao")
+    test_transaction()

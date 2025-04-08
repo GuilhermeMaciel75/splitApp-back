@@ -205,7 +205,7 @@ def login_group():
                 
                 # Procura por um usuário disponível para substituir
                 for i, user in enumerate(group['participants']):
-                    user_db = collection_users.find_one({'nome': user})
+                    user_db = collection_users.find_one({'login': user})
 
                     if user_db is None:
                         break
@@ -232,7 +232,7 @@ def login_group():
         
     else:
         # Verifica o grupo pelo nome caso a busca por ID não tenha funcionado
-        group = collection.find_one({'name': name})
+        group = collection.find_one({'login': name})
         
         if group:
             if group['pwd'] == password:
@@ -287,6 +287,71 @@ def get_all_groups():
         groups_list.append(group_data)
 
     return jsonify({"groups": groups_list}), 200
+
+@app.route('/groups', methods=['GET'])
+def get_groups_from_user():
+    db = client['groups']  # Substitua pelo nome do seu banco de dados
+    collection = db['groups']  # Substitua pelo nome da sua coleção
+
+    login_user = request.args.get('loginUser')
+    print(login_user)
+    db_users = client['Users']  # Substitua pelo nome do seu banco de dados
+    collection_users = db_users['Users']  # Substitua pelo nome da sua coleção
+
+    user_db = collection_users.find_one({'login': login_user})
+    print(user_db)
+
+    if user_db is None:
+        return jsonify({"message": "Usuário não possui grupos Cadastrados"}), 404
+
+    groups_list = []
+
+    for group_user in user_db['groups']:
+        print(group_user)
+        # Recupera todos os grupos da coleção
+        groups = collection.find_one({'id': group_user})  # find() retorna um cursor com todos os documentos
+
+        # Converte os resultados para uma lista e filtra os campos que deseja mostrar (por exemplo, sem o campo '_id')
+        group_data = {
+            'id': groups['id'],
+            'name': groups['name'],
+            'description': groups['description'],
+            'n_participants': groups['n_participants'],
+            'participants': groups['participants']
+        }
+        groups_list.append(group_data)
+
+    return jsonify({"groups": groups_list}), 200
+
+@app.route('/spent/register', methods=['POST'])
+def register_spent():
+    db = client['spents']  # Substitua pelo nome do seu banco de dados
+    collection = db['spents']  # Substitua pelo nome da sua coleção
+
+    # Recebe os dados enviados no corpo da requisição
+    data = request.get_json()
+    
+    id_group = data.get('id_group')
+    type_spent = data.get('type_spent')
+    spent_description = data.get('spent_description')
+    spent_value = data.get('spent_value')
+    participants_spent = data.get('participants_spent')
+
+    
+    # Cria o documento para inserir no MongoDB
+    expense_data = {
+        'id_group': id_group,
+        'type_spent': type_spent,
+        'spent_description': spent_description,
+        'spent_value': spent_value,
+        'participants_spent': participants_spent
+    }
+
+    # Insere o documento na coleção 'group_expenses'
+    collection.insert_one(expense_data)
+
+    # Retorna sucesso
+    return jsonify({"message": "Gasto registrado com sucesso!"}), 200
 
 
 if __name__ == '__main__':
