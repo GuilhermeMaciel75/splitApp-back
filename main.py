@@ -359,6 +359,105 @@ def register_spent():
     # Retorna sucesso
     return jsonify({"message": "Gasto registrado com sucesso!"}), 200
 
+@app.route('/extrato', methods=['GET'])
+def get_statement():
+    db = client['spents']
+    collection = db['spents']
+
+    login = request.args.get('login')
+    id_group = request.args.get('id_group')
+
+    if not login or not id_group:
+        return jsonify({"message": "Parâmetros 'login' e 'id_group' são obrigatórios."}), 400
+
+    # Busca as transações do grupo no banco "spents"
+    transactions = collection.find({'id_group': id_group})
+    
+    # Dicionários para acumular os valores:
+    # owes_user: valores que os outros devem para o usuário (créditos)
+    # user_owes: valores que o usuário deve para os outros (débitos)
+    owes_user = {}
+    user_owes = {}
+    
+    # Variável para acumular o total gasto pelo usuário (a soma das partes dele em todas as transações)
+    total_spent = 0.0
+
+    for tx in transactions:
+        payer = tx['paied_by']
+        spent_value = float(tx['spent_value'])
+        ps = tx['participants_spent']
+        
+        # Monta o dicionário "split" a partir do array de participantes
+        # Cada objeto em ps contém: name, percentage, value
+        split = {}
+
+        if isinstance(ps, list) and len(ps) > 0:
+            for participant_obj in ps:
+                participant_name = participant_obj['name']
+                
+                # Se 'value' estiver presente, usamos ele.
+                # Se quiser calcular com base na 'percentage', use a linha comentada abaixo.
+                participant_value = participant_obj['value']
+                
+                # Fallback caso 'value' seja None
+                if participant_value is None:
+                    participant_value = 0
+                else:
+                    participant_value = float(participant_value)
+                
+                split[participant_name] = participant_value
+
+        elif isinstance(ps, dict):
+            split = ps  # Caso já venha no formato dict
+        
+        # Se o usuário estiver na lista de participantes, acumula seu valor para o total gasto
+        if login in split:
+            total_spent += split[login]
+
+        # Se o usuário é o pagador, então cada participante (exceto ele) deve a ele o valor indicado.
+        if login == payer:
+            for participant, amount in split.items():
+                if participant == login:
+                    continue  # não contabiliza ele mesmo
+                owes_user[participant] = owes_user.get(participant, 0) + amount
+        else:
+            # Se o usuário participou e não é o pagador, então ele deve pagar ao pagador
+            if login in split:
+                amount = split[login]
+                user_owes[payer] = user_owes.get(payer, 0) + amount
+
+    # Calcula o saldo líquido para cada participante:
+    # Saldo positivo: o outro usuário deve para você
+    # Saldo negativo: você deve para o outro usuário
+    net_balances = {}
+    all_participants = set(owes_user.keys()) | set(user_owes.keys())  # união das chaves
+    for participant in all_participants:
+        net = owes_user.get(participant, 0) - user_owes.get(participant, 0)
+        net_balances[participant] = net
+
+    # Formata o resultado para cada participante
+    formatted_balances = {}
+    for participant, amount in net_balances.items():
+        rounded_amount = round(amount, 2)
+        if rounded_amount > 0:
+            formatted_balances[participant] = f"+{rounded_amount}"
+        elif rounded_amount < 0:
+            formatted_balances[participant] = f"{rounded_amount}"
+        else:
+            formatted_balances[participant] = "0"
+
+    extrato = {
+        "usuario": login,
+        "grupo": id_group,
+        "total_gasto": round(total_spent, 2),
+        "participants": formatted_balances
+    }
+    
+    return jsonify(extrato), 200
+
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
