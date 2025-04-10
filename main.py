@@ -456,7 +456,39 @@ def get_statement():
     return jsonify(extrato), 200
 
 
+@app.route('/group/info', methods=['GET'])
+def get_info_group_from_user():
+    db = client['groups']  # Substitua pelo nome do seu banco de dados
+    collection = db['groups']  # Substitua pelo nome da sua coleção
 
+    login_user = request.args.get('loginUser')
+    id_group = request.args.get('id_group')
+
+    print(login_user)
+    db_users = client['Users']  # Substitua pelo nome do seu banco de dados
+    collection_users = db_users['Users']  # Substitua pelo nome da sua coleção
+
+    user_db = collection_users.find_one({'login': login_user})
+    print(user_db)
+
+    if user_db is None:
+        return jsonify({"message": "Usuário não possui grupos Cadastrados"}), 404
+
+    groups_list = []
+    if id_group in user_db['groups']:
+        groups = collection.find_one({'id': id_group})  # find() retorna um cursor com todos os documentos
+
+        # Converte os resultados para uma lista e filtra os campos que deseja mostrar (por exemplo, sem o campo '_id')
+        group_data = {
+            'id': groups['id'],
+            'name': groups['name'],
+            'description': groups['description'],
+            'n_participants': groups['n_participants'],
+            'participants': groups['participants']
+        }
+        groups_list.append(group_data)
+
+    return jsonify({"groups": groups_list}), 200
 
 
 if __name__ == '__main__':
