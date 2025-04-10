@@ -175,7 +175,7 @@ def register_group():
     collection.insert_one(new_group)
     print("Grupo Criado")
 
-    return jsonify({"message": "Grupo registrado com sucesso!"}), 200
+    return jsonify({"message": "Grupo registrado com sucesso!", "id_group": unique_id}), 200
         
 @app.route('/login/group', methods=['GET'])
 def login_group():
@@ -225,10 +225,12 @@ def login_group():
                 
                 # Adiciona o grupo ao usuário
                 if not add_group_to_user(login_user, group['id']):
+                    print("Erro ao associar grupo ao usuário.")
                     return jsonify({"message": "Erro ao associar grupo ao usuário."}), 400
 
-                return jsonify({"message": "Login bem-sucedido!", "flag": True}), 200
+                return jsonify({"group_name": group['name'], 'group_description': group['description'], 'group_number_participants': group['n_participants'], 'login' : group['id']}), 200
         else:
+            print("Senha inválida!")
             return jsonify({"message": "Senha inválida!", "flag": False}), 400
         
     else:
@@ -359,16 +361,16 @@ def register_spent():
     # Retorna sucesso
     return jsonify({"message": "Gasto registrado com sucesso!"}), 200
 
-@app.route('/extrato', methods=['GET'])
+@app.route('/extract', methods=['GET'])
 def get_statement():
     db = client['spents']
     collection = db['spents']
 
-    login = request.args.get('login')
+    login = request.args.get('loginUser')
     id_group = request.args.get('id_group')
 
     if not login or not id_group:
-        return jsonify({"message": "Parâmetros 'login' e 'id_group' são obrigatórios."}), 400
+        return jsonify({"message": "Parâmetros 'loginUser' e 'id_group' são obrigatórios."}), 400
 
     # Busca as transações do grupo no banco "spents"
     transactions = collection.find({'id_group': id_group})
@@ -387,41 +389,34 @@ def get_statement():
         spent_value = float(tx['spent_value'])
         ps = tx['participants_spent']
         
-        # Monta o dicionário "split" a partir do array de participantes
-        # Cada objeto em ps contém: name, percentage, value
+        # Monta o dicionário "split" a partir do array de participantes,
+        # onde cada objeto contém: name, percentage, value
         split = {}
-
         if isinstance(ps, list) and len(ps) > 0:
             for participant_obj in ps:
                 participant_name = participant_obj['name']
-                
-                # Se 'value' estiver presente, usamos ele.
-                # Se quiser calcular com base na 'percentage', use a linha comentada abaixo.
                 participant_value = participant_obj['value']
-                
-                # Fallback caso 'value' seja None
+                # Se 'value' for None, utiliza 0
                 if participant_value is None:
                     participant_value = 0
                 else:
                     participant_value = float(participant_value)
-                
                 split[participant_name] = participant_value
-
         elif isinstance(ps, dict):
             split = ps  # Caso já venha no formato dict
         
-        # Se o usuário estiver na lista de participantes, acumula seu valor para o total gasto
+        # Acumula o valor da parte do usuário para o total gasto
         if login in split:
             total_spent += split[login]
 
-        # Se o usuário é o pagador, então cada participante (exceto ele) deve a ele o valor indicado.
+        # Se o usuário for o pagador, os demais participantes devem pagar para ele
         if login == payer:
             for participant, amount in split.items():
                 if participant == login:
-                    continue  # não contabiliza ele mesmo
+                    continue
                 owes_user[participant] = owes_user.get(participant, 0) + amount
         else:
-            # Se o usuário participou e não é o pagador, então ele deve pagar ao pagador
+            # Se o usuário participou e não é o pagador, ele deve pagar ao pagador
             if login in split:
                 amount = split[login]
                 user_owes[payer] = user_owes.get(payer, 0) + amount
@@ -430,29 +425,34 @@ def get_statement():
     # Saldo positivo: o outro usuário deve para você
     # Saldo negativo: você deve para o outro usuário
     net_balances = {}
-    all_participants = set(owes_user.keys()) | set(user_owes.keys())  # união das chaves
+    all_participants = set(owes_user.keys()) | set(user_owes.keys())
     for participant in all_participants:
         net = owes_user.get(participant, 0) - user_owes.get(participant, 0)
         net_balances[participant] = net
 
-    # Formata o resultado para cada participante
-    formatted_balances = {}
+    # Formata os saldos em uma lista de dicionários
+    participants_list = []
     for participant, amount in net_balances.items():
         rounded_amount = round(amount, 2)
         if rounded_amount > 0:
-            formatted_balances[participant] = f"+{rounded_amount}"
+            balance_str = f"+{rounded_amount}"
         elif rounded_amount < 0:
-            formatted_balances[participant] = f"{rounded_amount}"
+            balance_str = f"{rounded_amount}"  # Já contém o sinal negativo
         else:
-            formatted_balances[participant] = "0"
+            balance_str = "0"
+        participants_list.append({
+            "participant_name": participant,
+            "participant_balance": balance_str
+        })
 
     extrato = {
-        "usuario": login,
-        "grupo": id_group,
-        "total_gasto": round(total_spent, 2),
-        "participants": formatted_balances
+        "user_login": login,
+        "id_group": id_group,
+        "total_spent": round(total_spent, 2),
+        "participants": participants_list
     }
-    
+
+    print(extrato)
     return jsonify(extrato), 200
 
 
