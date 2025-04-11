@@ -314,6 +314,9 @@ def get_groups_from_user():
         # Recupera todos os grupos da coleção
         groups = collection.find_one({'id': group_user})  # find() retorna um cursor com todos os documentos
 
+        if groups == None:
+            continue
+
         # Converte os resultados para uma lista e filtra os campos que deseja mostrar (por exemplo, sem o campo '_id')
         group_data = {
             'id': groups['id'],
