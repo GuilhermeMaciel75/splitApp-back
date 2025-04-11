@@ -490,6 +490,47 @@ def get_info_group_from_user():
 
     return jsonify({"groups": groups_list}), 200
 
+@app.route('/extract/group', methods=['GET'])
+def get_extract_from_group():
+    db_transactions = client['spents']  # Substitua pelo nome do seu banco de dados
+    collection_transactions = db_transactions['spents']  # Substitua pelo nome da sua coleção
+
+    login_user = request.args.get('loginUser')
+    id_group = request.args.get('id_group')
+
+    print(login_user)
+    db_users = client['Users']  # Substitua pelo nome do seu banco de dados
+    collection_users = db_users['Users']  # Substitua pelo nome da sua coleção
+
+    user_db = collection_users.find_one({'login': login_user})
+    print(user_db)
+
+    if user_db is None:
+        return jsonify({"message": "Usuário não possui grupos Cadastrados"}), 404
+
+    transactions = collection_transactions.find({'id_group': id_group})
+
+    if transactions is None:
+        return jsonify({"message": "Grupo não possui transações registradas"}), 404
+    
+   
+    
+    list_transactions = []
+    for transaction in transactions:
+        print(transaction)
+
+        # Converte os resultados para uma lista e filtra os campos que deseja mostrar (por exemplo, sem o campo '_id')
+        transaction_data = {
+            'type_spent': transaction['type_spent'],
+            'spent_description': transaction['spent_description'],
+            'spent_value': float(transaction['spent_value']),
+            'login_user': transaction['paied_by']
+        }
+        list_transactions.append(transaction_data)
+
+    print(list_transactions)
+    return jsonify({"spents": list_transactions}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

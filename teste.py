@@ -129,7 +129,7 @@ def test_get_group():
     data = {
         'loginUser': 'ana'
     }
-
+    
     url = f"{BASE_URL}/groups"
 
     try:
@@ -159,6 +159,8 @@ def test_transaction():
             'User 3': 40,
         }
     }
+
+    BASE_URL = 'http://127.0.0.1:5000'
 
     url = f"{BASE_URL}/spent/register"
 
@@ -198,6 +200,28 @@ def test_extrato():
     except Exception as e:
         print(f"Erro ao fazer a requisição: {str(e)}")
 
+def test_extrato_group():
+    data = {
+        'id_group': '50w0fe',
+        'loginUser': 'gmm7',
+    }
+    
+
+    url = f"{BASE_URL}/extract/group"
+
+    try:
+        # Enviando a requisição GET para a API
+        response = requests.get(url, params=data, verify=False)  # `verify=False` é usado para ignorar erros de SSL em localhost
+
+        # Verificando o status code da resposta
+        if response.status_code == 200:
+            print("Get group bem-sucedido!")
+            print("Resposta:", response.json())
+        else:
+            print(f"Erro ao get group: {response.status_code}")
+            print("Mensagem de erro:", response.json())
+    except Exception as e:
+        print(f"Erro ao fazer a requisição: {str(e)}")
 
 # Executa os testes
 if __name__ == '__main__':
@@ -225,5 +249,8 @@ if __name__ == '__main__':
     #print("\nTestando a insercao de uma transacao")
     #test_transaction()
 
-    print("\nTestando extrato")
-    test_extrato()
+    #print("\nTestando extrato")
+    #test_extrato()
+
+    print("\nTestando extrato group")
+    test_extrato_group()
